@@ -111,9 +111,24 @@ Takeoff::on_active()
 			}
 
 		case fw_takeoff_state::GO_TO_LOITER: {
+				const bool navigation_valid = _navigator->get_local_position()->xy_valid;
+				bool lateral_acceptance_reached = true;
 
-				// consider reached once above the altitude acceptance radius of the loiter altitude
-				if (_navigator->get_global_position()->alt >= _loiter_altitude_msl - _navigator->get_altitude_acceptance_radius()) {
+				if (navigation_valid) {
+					// only consider lateral acceptance if position estimation is valid
+					const float distance_to_loiter = get_distance_to_next_waypoint(_navigator->get_global_position()->lat,
+									 _navigator->get_global_position()->lon, _mission_item.lat, _mission_item.lon);
+
+					const float mission_item_loiter_radius_abs = (PX4_ISFINITE(_mission_item.loiter_radius)
+							&& fabsf(_mission_item.loiter_radius) > FLT_EPSILON) ? fabsf(_mission_item.loiter_radius) :
+							_navigator->get_loiter_radius();
+					lateral_acceptance_reached = distance_to_loiter < _navigator->get_acceptance_radius() + mission_item_loiter_radius_abs;
+				}
+
+				const bool vertical_acceptance_reached = _navigator->get_global_position()->alt >= _loiter_altitude_msl -
+						_navigator->get_altitude_acceptance_radius();
+
+				if (lateral_acceptance_reached && vertical_acceptance_reached) {
 
 					position_setpoint_triplet_s *reposition_triplet = _navigator->get_reposition_triplet();
 					_navigator->reset_position_setpoint(reposition_triplet->previous);
