@@ -290,6 +290,7 @@ void Sih::init_variables()
 
 	_lpos = Vector3f(0.0f, 0.0f, 0.0f);
 	_v_N = Vector3f(0.0f, 0.0f, 0.0f);
+	_v_N_dot = Vector3f(0.0f, 0.0f, 0.0f);
 	_p_E = Vector3d(Wgs84::equatorial_radius, 0.0, 0.0);
 	_v_E = Vector3f(0.0f, 0.0f, 0.0f);
 	_q = Quatf(1.0f, 0.0f, 0.0f, 0.0f);
@@ -367,6 +368,9 @@ void Sih::generate_force_and_torques()
 		// thrust 0 because it is already contained in _T_B. in
 		// equations_of_motion they are all summed into sum_of_forces_E
 		generate_fw_aerodynamics(_u[4], _u[5], _u[6], 0);
+
+	} else if (_vehicle == VehicleType::RoverAckermann) {
+		generate_rover_ackermann_dynamics(_u[1], _u[0]);
 	}
 }
 
@@ -422,6 +426,55 @@ void Sih::generate_ts_aerodynamics()
 	_Ma_B = _R_S2B * Ma_ts - _KDW * _w_B; 	// aerodynamic moments
 }
 
+void Sih::generate_rover_ackermann_dynamics(const float throttle_cmd, const float steering_cmd)
+{
+	// --- Constants ---
+	const float MAX_FORCE = 210.0f;        // [N]
+	const float MAX_STEER_ANGLE = 0.5236f; // [rad] (=30°)
+	const float WHEEL_BASE = 0.321;        // [m] Distance between front and rear axle
+	const float C = 500.f;                 // [N/rad] Cornering stiffness
+	const float MU = 0.9f;                 // [-] Coefficient of friction
+	const float ROLLING_THRESHOLD = 0.3f; // [m/s] Threshold for rolling resistance
+
+	// --- Convert nav velocity to body frame ---
+	const matrix::Dcmf R_nb(_q);            // Body to nav frame
+	matrix::Vector3f v_B = R_nb.T() * _v_N; // Nav -> Body
+
+	// --- Compute inputs ---
+	const float delta = MAX_STEER_ANGLE * steering_cmd; // [rad] Steering angle
+	const float F_x = MAX_FORCE * throttle_cmd;         // [N] Throttle force
+
+	// --- Compute forces and moments ---
+	float F_y = 0.f; // [N] Lateral force
+	float M_z = 0.f; // [Nm] Yaw moment
+
+	if (fabsf(v_B(0)) > ROLLING_THRESHOLD) {
+		// Equations based on the lateral dynamics of the bycicle model introduced in [1]
+		// [1] Sri Anumakonda, Everything you need to know about Self-Driving Cars in <30 minutes
+		// Link: https://srianumakonda.medium.com/everything-you-need-to-know-about-self-driving-in-30-minutes-b38d68bd3427
+		const float a_y = C * delta / _MASS - fabsf(v_B(0)) * _w_B(2)
+				  - 2 * C * v_B(1) / (_MASS * fabsf(v_B(0))); // [m/s^2] Lateral acceleration
+		const float psi_dot_dot = WHEEL_BASE * C * delta / _sih_izz.get()
+					  - C * WHEEL_BASE * WHEEL_BASE  * _w_B(2) / (_sih_izz.get() * fabsf(v_B(0))); // [rad/s^2] Yaw acceleration
+		F_y = _MASS * a_y; // Lateral force [N]
+		M_z = _sih_izz.get() * psi_dot_dot; // [Nm] Yaw moment
+	}
+
+	_T_B = Vector3f(F_x, F_y, 0.f);
+	_Mt_B = Vector3f(0.f, 0.f, M_z);
+
+	// --- Compute drag forces and moments ---
+	Vector3f F_f = Vector3f(sign(F_x) * math::min(fabsf(F_x),  MU * _MASS * 9.81f), 0.f, 0.f); // [N] Static friction force
+
+	if (_v_E.norm() > ROLLING_THRESHOLD) {
+		F_f = _v_E.normalized() * MU * _MASS * 9.81f; // [N] Rolling resistance force
+	}
+
+	_Fa_E = -_KDV * _v_E - F_f; // [N] First order drag and friction
+	_Ma_B = -_KDW * _w_B;       // [Nm] First order angular damper
+
+}
+
 float Sih::computeGravity(const double lat)
 {
 	// Somigliana formula for gravitational acceleration
@@ -459,7 +512,8 @@ void Sih::equations_of_motion(const float dt)
 
 			_grounded = true;
 
-		} else if (_vehicle == VehicleType::FixedWing) {
+		} else if (_vehicle == VehicleType::FixedWing
+			   || _vehicle == VehicleType::RoverAckermann) {
 			Vector3f down_u = _R_N2E.col(2);
 			ground_force_E = -down_u * sum_of_forces_E * down_u;
 
@@ -749,6 +803,9 @@ int Sih::print_status()
 
 	} else if (_vehicle == VehicleType::StandardVTOL) {
 		PX4_INFO("Standard VTOL");
+
+	} else if (_vehicle == VehicleType::RoverAckermann) {
+		PX4_INFO("Rover Ackermann");
 	}
 
 	PX4_INFO("vehicle landed: %d", _grounded);
