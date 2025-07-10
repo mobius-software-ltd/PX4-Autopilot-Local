@@ -41,7 +41,7 @@
 /**
  * Takeoff relative climbout altitude
  *
- * Altitude relative to home at which the vehicle will stop with the straight
+ * Altitude relative to takeoff altitude at which the vehicle will stop with the straight
  * climbout and start heading in nominal configuration to the defined Hold position.
  * Only applies to fixed-wing takeoff mode (excluding Mission takeoffs).
  *

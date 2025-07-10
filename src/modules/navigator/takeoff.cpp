@@ -66,12 +66,12 @@ Takeoff::on_active()
 
 		// Extend the climbout up to the loiter altitude in case of position invalidity to create
 		// altitude buffer before engaging navigation loss failsafe.
-		const float climbout_exciting_altitude = _navigator->get_local_position()->xy_valid ? _climbout_alt_msl :
-				_loiter_altitude_msl;
+		const float climbout_exiting_altitude = _navigator->get_local_position()->xy_valid ? _climbout_alt_msl :
+							_loiter_altitude_msl;
 
 		switch (_fw_takeoff_state) {
 		case fw_takeoff_state::CLIMBOUT: {
-				if (_navigator->get_global_position()->alt >= climbout_exciting_altitude) {
+				if (_navigator->get_global_position()->alt >= climbout_exiting_altitude) {
 
 					setLoiterItemCommonFields(&_mission_item);
 
@@ -188,7 +188,8 @@ Takeoff::set_takeoff_position()
 
 	float takeoff_altitude_amsl = 0.f;
 
-	if (_param_tko_clmb_out_alt.get() > FLT_EPSILON) {
+	if (_param_tko_clmb_out_alt.get() > FLT_EPSILON
+	    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 		takeoff_altitude_amsl = _param_tko_clmb_out_alt.get() + _navigator->get_global_position()->alt;
 
 	} else if (rep->current.valid && PX4_ISFINITE(rep->current.alt)) {
