@@ -65,11 +65,6 @@ private:
 	} _fw_takeoff_state;
 
 	void set_takeoff_position();
-	float _climbout_alt_msl{NAN};
 	matrix::Vector2d _loiter_position_lat_lon{static_cast<double>(NAN), static_cast<double>(NAN)};
 	float _loiter_altitude_msl{NAN};
-
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::TKO_CLMB_OUT_ALT>) _param_tko_clmb_out_alt
-	)
 };

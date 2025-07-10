@@ -64,14 +64,9 @@ Takeoff::on_active()
 {
 	if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 
-		// Extend the climbout up to the loiter altitude in case of position invalidity to create
-		// altitude buffer before engaging navigation loss failsafe.
-		const float climbout_exiting_altitude = _navigator->get_local_position()->xy_valid ? _climbout_alt_msl :
-							_loiter_altitude_msl;
-
 		switch (_fw_takeoff_state) {
 		case fw_takeoff_state::CLIMBOUT: {
-				if (_navigator->get_global_position()->alt >= climbout_exiting_altitude) {
+				if (_navigator->get_global_position()->alt >= _loiter_altitude_msl) {
 
 					setLoiterItemCommonFields(&_mission_item);
 
@@ -104,7 +99,6 @@ Takeoff::on_active()
 					reset_mission_item_reached();
 
 					_fw_takeoff_state = fw_takeoff_state::GO_TO_LOITER;
-					_climbout_alt_msl = NAN; // reset for next takeoff command
 				}
 
 				break;
@@ -188,11 +182,7 @@ Takeoff::set_takeoff_position()
 
 	float takeoff_altitude_amsl = 0.f;
 
-	if (_param_tko_clmb_out_alt.get() > FLT_EPSILON
-	    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-		takeoff_altitude_amsl = _param_tko_clmb_out_alt.get() + _navigator->get_global_position()->alt;
-
-	} else if (rep->current.valid && PX4_ISFINITE(rep->current.alt)) {
+	if (rep->current.valid && PX4_ISFINITE(rep->current.alt)) {
 		takeoff_altitude_amsl = rep->current.alt;
 
 	} else {
@@ -213,15 +203,10 @@ Takeoff::set_takeoff_position()
 			     "Already higher than takeoff altitude (not descending)");
 	}
 
-	// if the climbout altitude is not yet set, set it to the takeoff altitude
-	_climbout_alt_msl = PX4_ISFINITE(_climbout_alt_msl) ? _climbout_alt_msl : takeoff_altitude_amsl; // only for FW takeoff
-
 	if (!PX4_ISFINITE(_loiter_altitude_msl)) {
 		if (_navigator->get_loiter_min_alt() > FLT_EPSILON) {
-			_loiter_altitude_msl = _climbout_alt_msl + _navigator->get_loiter_min_alt();
+			_loiter_altitude_msl = math::max(_loiter_altitude_msl, takeoff_altitude_amsl + _navigator->get_loiter_min_alt());
 
-		} else {
-			_loiter_altitude_msl = _climbout_alt_msl;
 		}
 	}
 
