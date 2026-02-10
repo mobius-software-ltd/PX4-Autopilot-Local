@@ -1424,24 +1424,24 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("ATTITUDE_QUATERNION", 1.0f);
 		configure_stream_local("ATTITUDE_TARGET", 1.0f);
 		configure_stream_local("AVAILABLE_MODES", 0.1f);
-		configure_stream_local("BATTERY_STATUS", 10.0f);
+		configure_stream_local("BATTERY_STATUS", 2.0f);
 		configure_stream_local("CAMERA_IMAGE_CAPTURED", unlimited_rate);
 		configure_stream_local("CURRENT_MODE", 0.1f);
 		configure_stream_local("DISTANCE_SENSOR", 0.1f);
 		configure_stream_local("EFI_STATUS", 0.1f);
 		configure_stream_local("ESC_INFO", 0.1f);
-		configure_stream_local("ESC_STATUS", 10.0f);
-		configure_stream_local("SERVO_OUTPUT_RAW_0", 10.0f);
-		configure_stream_local("HIGHRES_IMU", 10.0f);
+		configure_stream_local("ESC_STATUS", 5.0f);
+		configure_stream_local("SERVO_OUTPUT_RAW_0", 5.0f);
+		configure_stream_local("HIGHRES_IMU", 5.0f);
 		configure_stream_local("ESTIMATOR_STATUS", 0.1f);
 		configure_stream_local("EXTENDED_SYS_STATE", 1.0f);
 		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 1.0f);
 		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 1.0f);
 		configure_stream_local("GIMBAL_MANAGER_STATUS", 0.1f);
 #if defined(MAVLINK_MSG_ID_GLOBAL_POSITION)
-		configure_stream_local("GLOBAL_POSITION", 100.0f);
+		configure_stream_local("GLOBAL_POSITION", 25.0f);
 #endif
-		configure_stream_local("GLOBAL_POSITION_INT", 100.0f);
+		configure_stream_local("GLOBAL_POSITION_INT", 25.0f);
 #if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
 		configure_stream_local("GNSS_INTEGRITY", 1.0f);
 #endif
@@ -1467,10 +1467,10 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("SCALED_PRESSURE", 0.1f);
 		configure_stream_local("SYS_STATUS", 1.0f);
 		configure_stream_local("TIME_ESTIMATE_TO_TARGET", 0.1f);
-		configure_stream_local("VFR_HUD", 100.0f);
+		configure_stream_local("VFR_HUD", 25.0f);
 		configure_stream_local("VIBRATION", 0.1f);
 		configure_stream_local("WIND_COV", 0.1f);
-		configure_stream_local("LINK_NODE_STATUS", 10.0f);
+		configure_stream_local("LINK_NODE_STATUS", 2.0f);
 
 #if !defined(CONSTRAINED_FLASH)
 		configure_stream_local("DEBUG", 1.0f);
